@@ -1,0 +1,2 @@
+/* this is just "test3" from the makefile */
+{while i <= 5 do { total := total + (i*i) ; i := i + 1 }} ; print total
