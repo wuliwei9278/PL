@@ -48,6 +48,8 @@ let rec eval_aexp (a: aexp) (sigma: state) : int = match a with
   | Add(a1,a2) -> eval_aexp a1 sigma + eval_aexp a2 sigma 
   | Sub(a1,a2) -> eval_aexp a1 sigma - eval_aexp a2 sigma 
   | Mul(a1,a2) -> eval_aexp a1 sigma * eval_aexp a2 sigma 
+  | Div(a1,a2) -> if eval_aexp a2 sigma != 0 then eval_aexp a1 sigma / eval_aexp a2 sigma else failwith "divide by zero"
+  | Mod(a1,a2) -> if eval_aexp a2 sigma != 0 then eval_aexp a1 sigma mod eval_aexp a2 sigma else failwith "mod by zero"
 
 (* 
   | Div(a1,a2) -> 
@@ -58,6 +60,14 @@ let rec eval_aexp (a: aexp) (sigma: state) : int = match a with
 let rec eval_bexp (b: bexp) (sigma: state) : bool = match b with
   | True -> true
   | False -> false 
+  | EQ(a1,a2) -> if eval_aexp a1 sigma == eval_aexp a2 sigma then true else false
+  | LE(a1,a2) -> if eval_aexp a1 sigma <= eval_aexp a2 sigma then true else false
+  | Not b -> not (eval_bexp b sigma)
+  | And(b1, b2) -> eval_bexp b1 sigma && eval_bexp b2 sigma
+  | Or(b1,b2) -> eval_bexp b1 sigma || eval_bexp b2 sigma
+  | _ -> failwith "Does not match any boolean expressions!"
+    (* you must put real code here *) 
+
 (*
  * fill in the missing cases and code
   | EQ(a1,a2) -> 
@@ -66,18 +76,26 @@ let rec eval_bexp (b: bexp) (sigma: state) : bool = match b with
   | And(b1,b2) -> 
   | Or(b1,b2) -> 
  *) 
-  | _ -> 
-    (* you must put real code here *) 
-    failwith "Warning! BExp not yet implemented!"
+  
+  
 
 (* Evaluates a com given the state 'sigma'. *) 
 let rec eval_com (c: com) (sigma:state) : state = match c with
   | Skip -> sigma
   | Print (a:aexp) ->
        let value = eval_aexp a sigma in begin
-             Printf.printf "%d" value; 
+             Printf.printf "%d " value; 
              sigma
        end
+  | Set(id,a) -> let n = (eval_aexp a sigma) in update sigma id n
+  | Seq(c1,c2) -> let new_sigma = eval_com c1 sigma in eval_com c2 new_sigma
+  | If(b,c1,c2) -> if eval_bexp b sigma then eval_com c1 sigma else eval_com c2 sigma
+  | While(b,c) -> if eval_bexp b sigma == false then sigma else let new_sigma = eval_com c sigma in eval_com (While(b, c)) new_sigma
+  | Let(id,a,c) ->  
+        let new_sigma = eval_com (Set(id, a)) sigma in
+        eval_com c new_sigma; sigma
+  | _ -> failwith "Does not match any command!"
+    
 (*
  * fill in the missing cases and code 
   | Set(id,a) -> 
@@ -86,6 +104,4 @@ let rec eval_com (c: com) (sigma:state) : state = match c with
   | While(b,c) -> 
   | Let(id,a,c) -> 
  *) 
-  | _ -> 
-    (* you must put real code here *)
-    failwith "Warning! Com not yet implemented!"
+  
